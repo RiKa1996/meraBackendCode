@@ -44,6 +44,6 @@ const videoSchema = new mongoose.Schema(
     }
 )
 
-//this is very important ----like mongoose ka pipeline
+//this is very important ----like mongoose ka pipeline ---plugin hook hai
 videoSchema.plugin(mongooseAggregatePaginate)   /* this is second step----ye middleware ke sandarb me hai */
 export const Video = mongoose.model("Video", videoSchema)
