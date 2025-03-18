@@ -1,5 +1,7 @@
 //require(`dotenv`).config({path: './env'})       /* ye bahot hi common hai isliye */
 /* ye code jyada consitency banata hai isliye */
+//ye file humari database se connectivity wali hai
+//------------------------------------------------
 import dotenv from "dotenv"
 import connectDB from "./db/index.js"
 
@@ -7,7 +9,19 @@ dotenv.config({
     path: './env'
 })
 
-connectDB()
+connectDB()   /* ye db/index.js se aaya hai */
+.then(() =>{
+    app.on("error", (errrr) =>{
+        console.log('ERRR', errrr);
+    })
+
+    app.listen(process.env.PORT || 8000, () =>{
+        console.log(`Server is running at port : ${process.env.PORT}`)
+    })
+})
+.catch((err) => {
+    console.log("mongoDB connection failed !!!", err)
+})
 
 
 //import mongoose from "mongoose";
