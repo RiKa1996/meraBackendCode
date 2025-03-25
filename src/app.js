@@ -4,6 +4,7 @@ import cors from "cors";        /* ye help krta ki how to connect backend with f
 /* server se user ka jo brawser hai uske ander ki cookie ko access krna and set krna  */
 import cookieParser from "cookie-parser";   /* Small pieces of data stored on your browser by websites to remember your preferences, login status, or track your activity. */
 
+//ye humne express ki app bnaye hai
 const app = express()
 
 /*1st config this is Cors ---jisko connect kiya hai */
@@ -24,6 +25,17 @@ app.use(express.static("public"))
 /* 5th config jo ki server se user ka jo brawser hai uske ander ki cookie ko access krna and set krn */
 app.use(cookieParser())
 
+//=======================yha se router ki kahani start hai========================================================
+//YAHA HUM ROUTER KO IMPORT KREGE , YE SIGREEGATION KA PART HAI.
+//ROUTES IMPORT
+import userRouter from './routes/user.routes.js';    /* jb export default ho rha ho tab hi hum import me manchaha naam se skte hai */
+
+//ROUTES DECLARATION
+//Kyoki chihe ab seprate ho gai router ki file humne alag bana di hai-----app.use() krte hi ab hum yhi routes aur router likhege
+// router ko lane ke liye middleware likhenge--ye jo niche humne app.use("./users", userRouter) ye middleware hai
+app.use("/api/v1/users", userRouter)    //"./users" jaise hi likhege to wo hume le jayega userRouter pe-----ye file ko next likhege user.routes.js me
+
+//http://localhost:8000/api/vl/users/register ----ye hone wala hai jo app.js me middlware likha gaya hai wo fix rahega.
 
 export {app}   /* app jaise hi hum export krte hai to hume index.js me jake (kyoki async function hume promiss bhi return krta hai) */
                 /* index.js me ja ke .then aur .catch  */

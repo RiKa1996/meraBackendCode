@@ -56,7 +56,7 @@ const userSchema = new mongoose.Schema(
 userSchema.pre("save", async function () {
     if(!this.isModified("password"))  return next();
 
-    this.password = bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10)
     next()
 })          
 
@@ -93,4 +93,7 @@ userSchema.methods.generateRefreshToken = function (){
     )
 }
 
-export const User = mongoose.model("User", userSchema)
+
+//ye jo user hai ye humare database se direct contect kr skta hai. kyoki se humare mongoose.model se bana hai isliye
+//---humne user.controller.js me import krwaya hai.
+export const User = mongoose.model("User", userSchema)   

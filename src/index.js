@@ -4,14 +4,17 @@
 //------------------------------------------------
 import dotenv from "dotenv"
 import connectDB from "./db/index.js"
+import { app } from "./app.js"
 
+//ye invoirment variable config hua hai
 dotenv.config({
     path: './env'
 })
 
+//ye listen ho rha hai  
 connectDB()   /* ye db/index.js se aaya hai */
 .then(() =>{
-    app.on("error", (errrr) =>{
+    app.on("error", (errrr) =>{     /*  */
         console.log('ERRR', errrr);
     })
 
