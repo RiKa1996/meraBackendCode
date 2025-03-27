@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
 )
 
 /* save is part of document middleware--jo ki file save hone se phle ydi password incrypt krna ho to */
-userSchema.pre("save", async function () {
+userSchema.pre("save", async function (next) {
     if(!this.isModified("password"))  return next();
 
     this.password = await bcrypt.hash(this.password, 10)

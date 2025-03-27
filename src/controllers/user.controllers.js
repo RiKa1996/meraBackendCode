@@ -5,6 +5,7 @@ import { ApiError } from "../utils/apiError.js"            //2.validation me yhi
 import { User } from "../models/user.model.js"      //3.check if user already exists: username/email---isliye import kiya hai
 import { uploadOnCloudinary } from "../utils/fileUploaderCloudinary.js"  ////5.agar files available ho gai hai to: upload them to cloudinary, avatar ko bhi check kr lenge
 import { ApiResponse } from "../utils/apiResponse.js"  //9.return response
+//import router from "../routes/user.routes.js"
 
 //hum ek method banayege, jiska kaam hai sirf user ko register krna
 const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye asyncHandler.js se aaya jo ki registerUser method bana hai
@@ -26,7 +27,7 @@ const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye 
 
     //1. get user details from frontend---user se details lena---user ki details ---form aur json aur url se bhi aata hai hum yha body se lenge
     const {fullname, username, email, password} = req.body
-    console.log("email", email)
+    //console.log("email", email)
 
     //2.validation-not empty--ya koi aise hi koi dusra chij----isse phle humne image upload kiya hai by using user.routes.js and multer.middlewares.js se
     //ek-ek fields ko check krna hai ki wo empty to nhi hai
@@ -42,16 +43,26 @@ const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye 
         throw new ApiError(400, "All fields are required")
    }
    //3.check if user already exists: username/email----------------------------------------------------------------
-   const existedUser = User.findOne({           //findOne method --jo phla user hoga use return kr dega
+   const existedUser = await User.findOne({           //findOne method --jo phla user hoga use return kr dega
         $or: [{ username },{ email }]                           //This is oprators ----IMPORTANT 
    })  
    if (existedUser) {
-    throw new ApiError(409, "User with email or username is already exists")
+          throw new ApiError(409, "User with email or username is already exists")
    }
+
+
+   console.log(req.files);
    //4.files:check for images, check for avatar--------------------------------------------------------------------
    //kyoki humne user.routes.js ke ander middleware add kiya hai isliye ye middleware bhi hume axis deta hai
    const avatarLocalPath = req.files?.avatar[0]?.path;      //multer hume req.files ka access de deta hai---multer.middlware---? means optionally
-   const coverImageLocalPath = req.files?.coverImage[0]?.path;
+   const coverImageLocalPath = req.files?.coverImage[0]?.path; //0 lagane ki wajah se error aa rha tha--TypeError: Cannot read properties of undefined (reading '0') ise classic if elas ke tarike se dusra code likh skte hai
+   //ye dusra code hai POSTMAN ME UNCHECKED KRNE PER coverImageLocalPath ke liye kyoki 0 lagane aur question mark ki wajah se error aa rha tha
+   /* let coverImageLocalPath;
+   if (req.files && Array.isArray(req.files.coverImage) && req.files.length > 0) {
+          coverImageLocalPath = req.files.coverImage[0].path
+   } */
+
+
    //check for avatar
    if (!avatarLocalPath){
         throw new ApiError(400, "avtar file is required")
@@ -75,7 +86,7 @@ const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye 
    })
    //7.remove password and refresh token field from response
    //phle hum findById method se find karege fer us User ko select method se karege jise hume remove karna hai.
-   const createdUser = User.findById(user._id).select(
+   const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"           //aise aage minus laga ke us field ko select kr skte hai jise hume remove krna hai
    )
    //8.check for user creation
@@ -84,8 +95,8 @@ const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye 
    }
    //9.return response
    return res.status(201).json(
-        new ApiResponse(200, createdUser, "User registered successfully")
+     new ApiResponse(200, createdUser, "User registered successfully")
    )
 })                  
 
-export {registerUser}     //ye registerUser ko post kiya gaya hai user.routes.js me --- with the help of app.js
+export { registerUser }     //ye registerUser ko post kiya gaya hai user.routes.js me --- with the help of app.js
