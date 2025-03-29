@@ -1,6 +1,6 @@
 //ye humara 1st routes hai jo ki connect hoga humare user.controller.j me registration se
 import { Router } from "express";    //Router express se hai
-import { registerUser } from "../controllers/user.controllers.js";
+import { logOutUser, loginUser, registerUser } from "../controllers/user.controllers.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 
 //jaise hum express me app banate the vaise hi route se Router banayege---app.js me
@@ -8,6 +8,7 @@ const router = Router()
 
 //ye route is liye hai ki jo humari avatar aur coverImage ki jo file hai wo submit ki ja sake--kyoki ye text file nhi hoti
 //aur ab hum images bhej payege
+//======================ye router user register krne waqt avatar and coverimage file ko submit krne wali hai===============
 router.route("/register").post(
     upload.fields([                     //ye upload multer.middlewares.js se aaya hai--jo krta hai registerUser routes se phle ek field bana ke jata hai.
         {
@@ -20,5 +21,9 @@ router.route("/register").post(
         }
     ]),
     registerUser)
+//=======================ye router logout karne wala router hai==================================================================
+router.route("/login").post(loginUser)            //post method imformation lene ke liye
+
+router.route("/logout").post(verifyJWT ,logOutUser) //logOutUser se phle verifyJWT likhne se logout inject ho jata hai aur isliye auth.middleware.js me last me humne next() likha tha
 
 export default router    //router ko import hum krege app.js me---export default hota hai to to manchaha naam de skte hai app.js ke imprt userRouter me 

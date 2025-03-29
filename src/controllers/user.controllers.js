@@ -6,7 +6,25 @@ import { User } from "../models/user.model.js"      //3.check if user already ex
 import { uploadOnCloudinary } from "../utils/fileUploaderCloudinary.js"  ////5.agar files available ho gai hai to: upload them to cloudinary, avatar ko bhi check kr lenge
 import { ApiResponse } from "../utils/apiResponse.js"  //9.return response
 //import router from "../routes/user.routes.js"
+//==================//5.YE ACCESS TOKEN AUR REFRESH TOKEN KA ALAG SE SE METHOD HAI====================================================
+const generateAccessAndRefreshToken = async (userId) => {
+     try {
+          const user = await User.findById(userId)  //ye user ko find kar lega userId ke bases pe
+          //access token aur refresh token generate kr lega - user ko find krne ke baad
+          const accessToken = user.generateAccessToken()   //access token to hum user ko de deta hai but
+          const refreshToken = user.generateRefreshToken()   //refresh token hum database me save kr ke rakhte hai taki user se bar-bar password na puchn pade
+          //so refresh token ko database me kaise dale?---
+          user.refreshToken = refreshToken
+          //user ke ander add ho gaya but user ko save bhi krwan padta hai--refresh token ko database me save krwaya hai humne
+          user.save({ validateBeforSave: false })  //yha tak humpe accessToken aur refreshToken dono token humare pass hai refresh token data base me save kr chuke hai aur is refresh  bhi hai humare pass
+          //ab iske baad access token aur refresh token return karege
+          return {accessToken, refreshToken}
+     } catch (error) {
+          throw new ApiError(500, "Something went wrong while generating refresh and access token")
+     }
+}
 
+//==================THIS IS REGISTER USER=========================================================================================
 //hum ek method banayege, jiska kaam hai sirf user ko register krna
 const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye asyncHandler.js se aaya jo ki registerUser method bana hai
     /* res.status(200).json({
@@ -98,5 +116,87 @@ const registerUser = asyncHandler (async (req, res) => {      //asyncHandler ye 
      new ApiResponse(200, createdUser, "User registered successfully")
    )
 })                  
+//==================THIS IS LOGIN USER============================================================================================
+const loginUser = asyncHandler (async (req,res) => {
+     //1.Req body- data
+     //2.username or email ke behafe pe login karege 
+     //3.find the user
+     //4.password check
+     //5.access and refresh token
+     //6.send cookie ---secure cookie
 
-export { registerUser }     //ye registerUser ko post kiya gaya hai user.routes.js me --- with the help of app.js
+//1.Req body- data----//2.username or email ke behafe pe login karege
+     const {email, username, password } = req.body          //ye humne data le liya jiske behalf pe login krna hai
+     if (!username || !email) {                        //ydi dono me se koi ek humpe hona chaiye taki login kr ske
+          throw new ApiError(400, "username or password is required")
+     }
+     //ydi email and username dono humare pass me hai to ek user find krna padega kyoki dono me ya to email hoga ya username
+//3.find the user
+     const user = await User.findOne({                //findOne method find krega user ya to username ke base pe mil jaye ya fer email ke base pe
+          $or: [{username}, {email}]
+     })
+     //ydi $or laga ke username ya email mila hi nhi to iska mtlb user kabhi register hua hi nhi hoga.
+     if (!user) {
+          throw new ApiError(404, "User dos't exist")
+     }
+     //ydi user ka username ya email mil gaya to ab uska password check krna padega----yaha pe User capital User mongoDB ka mongoose ka ek Object hai.
+//4.password check
+     const isPasswordValid = await user.isPasswordCorrect(password)   //ye password humne user.model se set kiya --ydi password shi hua to tik hai nhi to if else laga dege aur error de denge
+     //ydi password shi nhi hua to
+     if (!isPasswordValid) {
+          throw new ApiError(401, "Invalid user credentials")
+     }
+//5.access and refresh token
+     //iska hum ek alag se method banaya hai.---upper banaya hai.--generateAccessAndRefreshToken naam se
+     const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
+
+     //this is optional step jo ki ydi hume jo chij hume user ko nhi deni hai 
+     const loggedInUser = User.findById(user._id).select("-password -refreshToken")
+
+//6.send cookie ---secure cookie
+     //cookie jb hum bhejte hai to hume option design krna padta hai jo ki object hi hota hai 
+     const options = {
+          httpOnly: true,  //httpOnly aur secrue krne se ye sirf server se modify hogi na ki frontend --ye server se modifable hai
+          secure: true
+     }
+     //is method se hume return krna hai return response
+     return res.status(200)
+     .cookie("accessToken", accessToken, options)          //humpe cookie-parser hai to cookie ka access hoga hi
+     .cookie("refreshToken", refreshToken, options)
+     .json(new ApiResponse(200, {
+          //basically ye data hai jo ki hum apiResponse.js me (this.data = data) hai
+          user: loggedInUser, accessToken, refreshToken   //ye bhejna ek acchi practice hai , we don't know user kha save krna chahta hai
+          },
+          "User logged in successfully"
+     ))
+     
+})   
+//=================THIS IS LOG-OUT USER===========================================================================================
+//shi maine me logout krne ke liye hume phle cookie aur refreshToken ko hatna padega
+const logOutUser = asyncHandler (async (req, res) => {
+     //kyoki hume pata nhi hai ki kiske behalf pe hume logout krna hai to hum apna ek alag se middleware banayege jo ki help krega logout krne me auth.middleware.js me
+     //ab hume pata chal gaya aur auth.middleware.js aur user.routes.js se --- to aage 
+     User.findByIdAndUpdate(
+          await req.user._id,   //isse user ko find kr lenge kis user ko logout krna hai
+          {
+               //update krne waqt mongoDB ka ka ek $set operator use krna padta hai--jo batata hai kya-kya update krna hai
+               $set: {
+                    refreshToken: undefined   //isse jo hamara refreshToken database se gayab ho gya ya fer kah skte hai saaf ho jayega
+               },                  
+          },
+          {
+               new: true   //isse hum aur bhi operator likh skte hai
+          }
+     )
+     const options = {      //ye cookies jo hume login ke time li hai use bhi hatana padega
+          httpOnly: true,
+          secure: true
+     }
+     //ab ise return karege
+     return res
+     .status(200)
+     .clearCookie("accessToken", options)
+     .clearCookie("refreshToken", options)
+     .json(new ApiResponse(200, {}, "User logged Out"))
+})
+export { registerUser, loginUser, logOutUser }     //ye registerUser ko post kiya gaya hai user.routes.js me --- with the help of app.js
